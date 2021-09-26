@@ -8,12 +8,16 @@ from tensorflow import keras
 import numpy
 from keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.inception_v3 import InceptionV3
+from tensorflow.keras import layers
+from tensorflow.keras import Model
 
 # Parameters.
-epochs = 50
+epochs = 10
 batchSize = 128
 
 # Data url (https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip).
+# Inception model weights url (https://storage.googleapis.com/mledu-datasets/inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5).
 
 # Load training images from location and change image size.
 training_data = ImageDataGenerator(rescale=1./255,
@@ -43,18 +47,27 @@ validation_data = ImageDataGenerator(rescale=1./255,
     batch_size=batchSize,
     class_mode='binary')
 
+
+# Trained model.
+trained_model = InceptionV3(input_shape = (150, 150, 3), 
+                                include_top = False, 
+                                weights = None)
+
+trained_model.load_weights("inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5")
+
+# Set training false for trained model.
+for layer in trained_model.layers:
+  layer.trainable = False
+
+# Last layer output.
+last_layer_output = trained_model.get_layer('mixed7').output
+
 # Create model with 1 output unit for classification.
-model = keras.models.Sequential([
-    keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(150, 150, 3)),
-    keras.layers.MaxPooling2D(2, 2),
-    keras.layers.Conv2D(32, (3,3), activation='relu'),
-    keras.layers.MaxPooling2D(2,2),
-    keras.layers.Conv2D(64, (3,3), activation='relu'),
-    keras.layers.MaxPooling2D(2,2),
-    keras.layers.Flatten(),
-    keras.layers.Dense(512, activation='relu'),
-    keras.layers.Dense(1, activation='sigmoid')
-])
+x = layers.Flatten()(last_layer_output)
+x = layers.Dense(512, activation="relu")(x)
+x = layers.Dropout(0.2)(x)                  
+x = layers.Dense  (1, activation="sigmoid")(x) 
+model = Model(trained_model.input, x)
 
 # Set loss function and optimizer.
 model.compile(optimizer="adam",
