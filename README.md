@@ -15,10 +15,6 @@ py -m pip install numpy
 ```bash
 py -m pip install tensorflow
 ```
-### Matplotlib
-```bash
-py -m pip install matplotlib
-```
 
 ## Start Training
 ```bash
